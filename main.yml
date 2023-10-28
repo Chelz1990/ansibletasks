@@ -1,0 +1,76 @@
+---
+- hosts: all
+  tasks:
+
+  - name: run apt-get update for Debian
+    shell: "apt-get update"
+    ignore_errors: true
+    when: ansible_os_family == 'Debian'
+
+  - name: install specific packages for Debian
+    apt:  
+      name: "{{ dpackages }}"
+    vars:
+      dpackages:
+      - zip
+      - unzip
+      - wget
+      - ansible
+    when: ansible_os_family == 'Debian'
+
+  - name: install specific packages for RedHat
+    yum:  
+      name: "{{ rhpackages }}"
+    vars:
+      rhpackages:
+      - epel-release
+      - ansible
+      - zip
+      - unzip
+      - wget
+    when: ansible_os_family == 'RedHat'
+
+  - name: install the latest version of Apache for RedHat
+    yum:
+      name: httpd
+      state: latest
+    when: ansible_os_family == 'RedHat'
+
+  - name: install the latest version of Apache for Debian
+    apt:
+      name: apache2
+      state: latest
+    when: ansible_os_family == 'Debian'
+
+  - name: Download CSS template
+    get_url:
+      url: https://www.free-css.com/assets/files/free-css-templates/download/page292/honey.zip
+      dest: /tmp
+
+  - name: Unzip the downloaded CSS template
+    unarchive:
+      src: /tmp/honey.zip
+      dest: /tmp
+      remote_src: yes
+
+  - name: Move the downloded template to appropriate file
+    shell: mv /tmp/* /var/www/html
+    ignore_errors: true
+
+  - name: rename webpage to index.html 
+    shell: mv /var/www/html/honey-html /var/www/html/index.html
+    ignore_errors: true
+
+  - name: run and enable Apache for RedHat
+    systemd:
+      state: reloaded
+      name: httpd
+      enabled: yes
+    when: ansible_os_family == 'RedHat'
+
+  - name: run and enable Apache for Debian
+    systemd:
+      state: restarted
+      name: apache2
+      enabled: yes
+    when: ansible_os_family == 'Debian'
